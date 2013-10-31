@@ -1,6 +1,7 @@
 package com.nttuyen.android.umon.core.mvc;
 
 import com.nttuyen.android.umon.core.Callback;
+import com.nttuyen.android.umon.core.MethodCallback;
 import com.nttuyen.android.umon.core.async.Async;
 import com.nttuyen.android.umon.core.http.HTTP;
 import com.nttuyen.android.umon.core.http.JsonResponse;
@@ -16,6 +17,7 @@ public abstract class JSONModel extends Model {
 	public static final String PROCESS_HTTP_REQUEST = "http_request";
 
 	protected JsonResponse response = null;
+	protected JSONObject data = null;
 	/**
 	 * URL for get data
 	 * @return
@@ -34,36 +36,34 @@ public abstract class JSONModel extends Model {
 
 		Map<String, Object> options = new HashMap<String, Object>();
 		options.put(Async.OPTION_TASK_NAME, PROCESS_HTTP_REQUEST);
-		options.put(Async.OPTION_ON_PRE_EXECUTE, Callback.MethodCallback.newInstance("preAsync", this));
+		options.put(Async.OPTION_ON_PRE_EXECUTE, MethodCallback.newInstance("onPreAsync", this));
 		//options.put(Async.OPTION_ON_POST_EXECUTE, postAsync);
-		options.put(HTTP.OPTION_SUCCESS, Callback.MethodCallback.newInstance("onHttpSuccess", this));
-		options.put(HTTP.OPTION_ERROR, Callback.MethodCallback.newInstance("onHttpFailure", this));
+		options.put(HTTP.OPTION_SUCCESS, MethodCallback.newInstance("onHttpSuccess", this));
+		options.put(HTTP.OPTION_ERROR, MethodCallback.newInstance("onHttpFailure", this));
 
 		Async.http(url, options);
 	}
 
-	protected void fromJson(JSONObject json) {
-		try {
-			JsonConvertHelper.inject(json, this);
-			trigger(ON_PROCESS_COMPLETED, this, PROCESS_HTTP_REQUEST);
-		} catch (Exception ex) {
-			trigger(ON_PROCESS_ERROR, JSONModel.this, PROCESS_HTTP_REQUEST, 409, "Conflict", "Response message is not as expected");
-		}
+	@Deprecated
+	protected void fromJson(JSONObject json) throws Exception {
+		JsonConvertHelper.inject(json, this);
 	}
 
 	//Pre async execute
-	public void preAsync(String taskName) {
-		trigger(ON_PROCESS_START, JSONModel.this, taskName);
+	public void onPreAsync(String taskName) {
+		trigger(ON_PROCESS_START, this, taskName);
 	}
 	//Post async execute
 
 	//HTTP success
 	public void onHttpSuccess() {
-		fromJson(response.getResult());
+		//fromJson(response.getResult());
+		this.data = response.getResult();
+		trigger(ON_PROCESS_COMPLETED, this, PROCESS_HTTP_REQUEST);
 	}
 
 	//Http failure
 	public void onHttpFailure(int code, String status, String message) {
-		trigger(ON_PROCESS_ERROR, JSONModel.this, PROCESS_HTTP_REQUEST, code, status, message);
+		trigger(ON_PROCESS_ERROR, this, PROCESS_HTTP_REQUEST, code, status, message);
 	}
 }

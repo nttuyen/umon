@@ -1,4 +1,6 @@
-package com.nttuyen.android.umon.core.mvc;
+package com.nttuyen.android.umon.core.ui;
+
+import android.view.View;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;
@@ -10,6 +12,6 @@ import java.lang.annotation.Target;
  */
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.METHOD, ElementType.FIELD})
-public @interface EventListener {
-	public String event() default "";
+public @interface UIOnclick {
+	public int[] views() default {};
 }

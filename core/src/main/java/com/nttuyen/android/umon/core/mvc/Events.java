@@ -1,6 +1,7 @@
 package com.nttuyen.android.umon.core.mvc;
 
 import com.nttuyen.android.umon.core.Callback;
+import com.nttuyen.android.umon.core.MethodCallback;
 
 import java.lang.reflect.Method;
 import java.util.HashSet;
@@ -21,12 +22,12 @@ public class Events {
 			return;
 		}
 
-		on(model, event, Callback.MethodCallback.newInstance(callback, context));
+		on(model, event, MethodCallback.newInstance(callback, context));
 	}
 
 	public static void on(Model model, String event, Method method, Object context) {
 		if(model != null && method != null && context != null) {
-			on(model, event, new Callback.MethodCallback(method, context));
+			on(model, event, new MethodCallback(method, context));
 		}
 	}
 
@@ -59,9 +60,9 @@ public class Events {
 		Method[] methods = type.getDeclaredMethods();
 		Set<String> registered = new HashSet<String>();
 		for(Method method : methods) {
-			EventListener eventListener = method.getAnnotation(EventListener.class);
-			if(eventListener != null && eventListener.event() != null && !"".equals(eventListener.event())) {
-				String event = eventListener.event();
+			ModelEventListener modelEventListener = method.getAnnotation(ModelEventListener.class);
+			if(modelEventListener != null && modelEventListener.event() != null && !"".equals(modelEventListener.event())) {
+				String event = modelEventListener.event();
 				Events.on(model, event, method, target);
 				registered.add(event);
 			}
@@ -70,9 +71,9 @@ public class Events {
 		//All public method should be load but do not override
 		methods = type.getMethods();
 		for(Method method : methods) {
-			EventListener eventListener = method.getAnnotation(EventListener.class);
-			if(eventListener != null && eventListener.event() != null && !"".equals(eventListener.event())) {
-				String event = eventListener.event();
+			ModelEventListener modelEventListener = method.getAnnotation(ModelEventListener.class);
+			if(modelEventListener != null && modelEventListener.event() != null && !"".equals(modelEventListener.event())) {
+				String event = modelEventListener.event();
 				if(!registered.contains(event)) {
 					Events.on(model, event, method, target);
 				}

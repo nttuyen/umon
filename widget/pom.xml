@@ -9,6 +9,7 @@
 	</parent>
     <artifactId>widget</artifactId>
     <packaging>apklib</packaging>
+	<description>Some common widget</description>
 
     <dependencies>
         <dependency>
