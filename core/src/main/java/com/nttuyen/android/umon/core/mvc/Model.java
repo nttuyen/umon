@@ -39,7 +39,7 @@ public abstract class Model {
 	/**
 	 * Param for this event
 	 * 1 => Model raise event
-	 * 2 => fieldChange: separate by ','
+	 * if one file change, it will be: ON_CHANGE:FIELD_NAME or ON_CHANGE[INDEX_IN_COLLECTION]
 	 */
 	public static final String ON_CHANGE = "eventOnChange";
 
@@ -76,6 +76,7 @@ public abstract class Model {
 		}
 	}
 
+	public abstract <K> K getId();
 	public abstract void fetch();
 	public abstract void save();
 
@@ -93,7 +94,7 @@ public abstract class Model {
 		 */
 		public static final String ON_REMOVE = "onRemove";
 
-		protected java.util.Collection<T> children = new LinkedList<T>();
+		protected List<T> children = new LinkedList<T>();
 
 		public void add(T child) {
 			this.children.add(child);
@@ -103,8 +104,24 @@ public abstract class Model {
 		public void remove(T child) {
 			if(this.children.remove(child)) {
 				trigger(ON_REMOVE, this, child);
-				trigger(ON_CHANGE, this, "");
+				trigger(ON_CHANGE, this);
 			}
+		}
+
+		public int indexOf(T child) {
+			return children.indexOf(child);
+		}
+
+		public T get(int index) {
+			return children.get(index);
+		}
+
+		public void set(int index, T child) {
+			this.children.set(index, child);
+			trigger(ON_CHANGE+"["+ index +"]", this);
+		}
+		public int size() {
+			return children.size();
 		}
 	}
 }

@@ -9,14 +9,14 @@ import com.nttuyen.android.umon.core.mvc.Presenter;
 /**
  * @author nttuyen266@gmail.com
  */
-public abstract class AnnotationFragmentActivity extends FragmentActivity implements Presenter {
+public abstract class ModelFragmentActivity extends FragmentActivity implements Presenter {
 	protected final UIContextHelper contextHelper = new UIContextHelper(this);
 	protected View bodyView = null;
 	protected Model model = null;
 
 	public void setModel(Model model) {
 		this.model = model;
-		this.registerModelEvents();
+		Events.registerAllEvents(this.model, this);
 	}
 
 	@Override
@@ -26,11 +26,11 @@ public abstract class AnnotationFragmentActivity extends FragmentActivity implem
 
 	public void setBodyView(View bodyView) {
 		this.bodyView = bodyView;
-		registerOnClicks();
+		UIEvents.on(this.bodyView, this);
 	}
 	public void setBodyView(int layout) {
 		this.bodyView = getLayoutInflater().inflate(layout, null);
-		registerOnClicks();
+		UIEvents.on(this.bodyView, this);
 	}
 
 	@Override
@@ -41,21 +41,6 @@ public abstract class AnnotationFragmentActivity extends FragmentActivity implem
 	@Override
 	public void setContentView(int layoutResID) {
 		super.setContentView(layoutResID);
-		UIEvents.onClick(this, this);
-	}
-
-	protected void registerModelEvents() {
-		Model model = this.getModel();
-		if(model == null) {
-			return;
-		}
-		Events.registerAllEvents(model, this);
-	}
-
-	protected void registerOnClicks() {
-		View view = this.getView();
-		if(view != null) {
-			UIEvents.onClick(view, this);
-		}
+		UIEvents.on(this, this);
 	}
 }

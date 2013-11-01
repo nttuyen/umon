@@ -61,10 +61,12 @@ public class Events {
 		Set<String> registered = new HashSet<String>();
 		for(Method method : methods) {
 			ModelEventListener modelEventListener = method.getAnnotation(ModelEventListener.class);
-			if(modelEventListener != null && modelEventListener.event() != null && !"".equals(modelEventListener.event())) {
-				String event = modelEventListener.event();
-				Events.on(model, event, method, target);
-				registered.add(event);
+			if(modelEventListener != null && modelEventListener.events() != null && modelEventListener.events().length > 0) {
+				String[] events = modelEventListener.events();
+				for(String event : events) {
+					Events.on(model, event, method, target);
+					registered.add(event);
+				}
 			}
 		}
 
@@ -72,10 +74,12 @@ public class Events {
 		methods = type.getMethods();
 		for(Method method : methods) {
 			ModelEventListener modelEventListener = method.getAnnotation(ModelEventListener.class);
-			if(modelEventListener != null && modelEventListener.event() != null && !"".equals(modelEventListener.event())) {
-				String event = modelEventListener.event();
-				if(!registered.contains(event)) {
-					Events.on(model, event, method, target);
+			if(modelEventListener != null && modelEventListener.events() != null && modelEventListener.events().length > 0) {
+				String[] events = modelEventListener.events();
+				for(String event : events) {
+					if(!registered.contains(event)) {
+						Events.on(model, event, method, target);
+					}
 				}
 			}
 		}
