@@ -48,7 +48,7 @@ public abstract class Model {
 	void on(String event, Callback callback) {
 		Set<Callback> set = null;
 		if(!handlers.containsKey(event)) {
-			set = new LinkedHashSet<Callback>();
+			set = new HashSet<Callback>();
 		} else {
 			set = this.handlers.get(event);
 		}
@@ -99,12 +99,10 @@ public abstract class Model {
 		public void add(T child) {
 			this.children.add(child);
 			trigger(ON_ADD, this, child);
-			trigger(ON_CHANGE, this, "");
 		}
 		public void remove(T child) {
 			if(this.children.remove(child)) {
 				trigger(ON_REMOVE, this, child);
-				trigger(ON_CHANGE, this);
 			}
 		}
 

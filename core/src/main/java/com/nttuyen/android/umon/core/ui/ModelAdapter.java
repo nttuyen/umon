@@ -32,7 +32,11 @@ public abstract class ModelAdapter<T extends Model> extends BaseAdapter {
 
 	@Override
 	public long getItemId(int i) {
-		return models.get(i).getId();
+		try {
+			return Long.parseLong(models.get(i).getId().toString());
+		} catch (Throwable ex) {
+			return i;
+		}
 	}
 
 	@Override

@@ -16,7 +16,7 @@ public abstract class ModelFragmentActivity extends FragmentActivity implements 
 
 	public void setModel(Model model) {
 		this.model = model;
-		Events.registerAllEvents(this.model, this);
+		Events.registerAllEvents(model, this);
 	}
 
 	@Override
@@ -31,6 +31,17 @@ public abstract class ModelFragmentActivity extends FragmentActivity implements 
 	public void setBodyView(int layout) {
 		this.bodyView = getLayoutInflater().inflate(layout, null);
 		UIEvents.on(this.bodyView, this);
+	}
+
+	@Override
+	public View findViewById(int id) {
+		View view = super.findViewById(id);
+		if(view == null) {
+			if(this.bodyView != null) {
+				view = this.bodyView.findViewById(id);
+			}
+		}
+		return view;
 	}
 
 	@Override

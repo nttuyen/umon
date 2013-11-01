@@ -51,8 +51,6 @@ public class Events {
 		if(model == null || target == null) {
 			return;
 		}
-		//Clean all old eventListener
-		Events.off(model);
 
 		Class type = target.getClass();
 

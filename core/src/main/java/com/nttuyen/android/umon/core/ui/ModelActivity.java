@@ -34,6 +34,17 @@ public abstract class ModelActivity extends Activity implements Presenter {
 	}
 
 	@Override
+	public View findViewById(int id) {
+		View view = super.findViewById(id);
+		if(view == null) {
+			if(this.bodyView != null) {
+				view = this.bodyView.findViewById(id);
+			}
+		}
+		return view;
+	}
+
+	@Override
 	public View getView() {
 		return this.bodyView;
 	}

@@ -52,6 +52,26 @@ public class MethodCallback implements Callback {
 		}
 	}
 
+	@Override
+	public int hashCode() {
+		if(this.method == null || this.context == null) {
+			return 0;
+		}
+		return (this.method.toString() + this.context.toString()).hashCode();
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if(obj == this) return true;
+
+		if(!(obj instanceof MethodCallback)) {
+			return false;
+		}
+		MethodCallback value = (MethodCallback)obj;
+
+		return this.context.equals(value.context) && this.method.equals(value.method);
+	}
+
 	public static MethodCallback newInstance(String methodName, Object context) {
 		if(methodName == null || context == null || "".equals(methodName)) {
 			return null;
