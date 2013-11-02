@@ -10,7 +10,7 @@ import com.nttuyen.android.umon.core.mvc.ModelEventListener;
 /**
  * @author nttuyen266@gmail.com
  */
-public class ModelFragmentPagerAdapter<T extends Model> extends FragmentPagerAdapter {
+public abstract class ModelFragmentPagerAdapter<T extends Model> extends FragmentPagerAdapter {
 	protected Model.Collection<T> models;
 
 	public ModelFragmentPagerAdapter(FragmentManager fm) {
@@ -35,12 +35,10 @@ public class ModelFragmentPagerAdapter<T extends Model> extends FragmentPagerAda
 		Events.registerAllEvents(this.models, this);
 	}
 
-	public ModelFragment getFragment(int position) {
-		return null;
-	}
+	public abstract ModelFragment getFragment(int position);
 
 	@ModelEventListener(events = {Model.ON_CHANGE})
 	public void onChange() {
-		//TODO: what should todo onChange
+		notifyDataSetChanged();
 	}
 }
