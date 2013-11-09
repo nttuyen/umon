@@ -8,5 +8,6 @@ import java.util.Map;
 public interface Storage {
 	public <K, V> void put(K key, V value);
 	public <K, V> V get(K key);
-	public <K, V> Map<K, V> map();
+	public <K, V> V remove(K key);
+	public <K> K[] keys();
 }

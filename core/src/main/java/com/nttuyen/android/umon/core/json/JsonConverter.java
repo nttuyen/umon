@@ -8,8 +8,10 @@ import java.util.ArrayList;
 import java.util.Collection;
 
 /**
+ * Deprecated Use @com.nttuyen.android.umon.core.mapper.Mapper
  * @author nttuyen266@gmail.com
  */
+@Deprecated
 public abstract class JsonConverter {
 	public abstract <T> T inject(JSONObject json, T target) throws Exception;
 	public <T> Collection<T> inject(JSONArray json, Class<T> type, Collection<T> collections) throws Exception {

@@ -12,6 +12,7 @@ import java.util.Map;
 /**
  * @author nttuyen266@gmail.com
  */
+@Deprecated
 public class JsonConvertHelper {
     private static final Map<String, JsonConverter> converters = new HashMap<String, JsonConverter>();
 
