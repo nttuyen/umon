@@ -235,8 +235,11 @@ public class JSONObjectMapper<Target> implements Mapper<JSONObject, Target> {
 		if(type.equals(Boolean.class) || type.equals(Boolean.TYPE)) {
 			return json.getBoolean(fieldName);
 		}
-		if(type.equals(Double.class) || type.equals(Double.TYPE) || type.equals(Float.class) || type.equals(Float.TYPE)) {
+		if(type.equals(Double.class) || type.equals(Double.TYPE)) {
 			return json.getDouble(fieldName);
+		}
+		if(type.equals(Float.class) || type.equals(Float.TYPE)) {
+			return Float.valueOf(String.valueOf(json.getDouble(fieldName)));
 		}
 		if(type.equals(Integer.class) || type.equals(Integer.TYPE)) {
 			return json.getInt(fieldName);

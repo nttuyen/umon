@@ -153,6 +153,10 @@ public class TestMapper {
 		String jsonString = "{" +
 				"id: 10, " +
 				"name: \"name value\", " +
+				"i: 12," +
+				"b: true," +
+				"d: 11.1," +
+				"f: 12.1," +
 				"simple: {id: 10, name: \"name value\"}, " +
 				"simples: [{id: 1, name: \"name 1\"}, {id: 2, name: \"name 2\"}, {id: 3, name: \"name 3\"}, {id: 4, name: \"name 4\"}]," +
 				"collection: [{id: 1, name: \"name 1\"}, {id: 2, name: \"name 2\"}, {id: 3, name: \"name 3\"}, {id: 4, name: \"name 4\"}]}";
@@ -165,6 +169,10 @@ public class TestMapper {
 		Assert.assertNotNull(complex);
 		Assert.assertEquals(10, complex.getId());
 		Assert.assertEquals("name value", complex.getName());
+		Assert.assertEquals(12, complex.getI());
+		Assert.assertTrue(complex.isB());
+		Assert.assertEquals(11.1, complex.getD(), 0);
+		Assert.assertEquals(12.1f, complex.getF(), 0);
 
 		Assert.assertNotNull(complex.getSimple());
 		SimpleClass simple = complex.getSimple();
@@ -214,6 +222,10 @@ public class TestMapper {
 	public static class ComplexClass {
 		private long id;
 		private String name;
+		private int i;
+		private boolean b;
+		private double d;
+		private float f;
 
 		private SimpleClass simple;
 		private SimpleClass[] simples;
@@ -259,6 +271,38 @@ public class TestMapper {
 
 		public void setCollection(Collection<SimpleClass> collection) {
 			this.collection = collection;
+		}
+
+		public int getI() {
+			return i;
+		}
+
+		public void setI(int i) {
+			this.i = i;
+		}
+
+		public boolean isB() {
+			return b;
+		}
+
+		public void setB(boolean b) {
+			this.b = b;
+		}
+
+		public double getD() {
+			return d;
+		}
+
+		public void setD(double d) {
+			this.d = d;
+		}
+
+		public float getF() {
+			return f;
+		}
+
+		public void setF(float f) {
+			this.f = f;
 		}
 	}
 }
