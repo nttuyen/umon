@@ -47,7 +47,25 @@ public class JSONObjectMapper<Target> implements Mapper<JSONObject, Target> {
 			return target;
 		}
 
-		Field[] fields = targetClass.getDeclaredFields();
+		//TODO: need to process parent field if has
+		Set<Field> fields = new HashSet<Field>();
+
+		//Field declared in current class
+		Field[] fs = targetClass.getDeclaredFields();
+		for(Field f : fs) {
+			fields.add(f);
+		}
+
+		Class parent = targetClass.getSuperclass();
+		while (parent != null && !parent.equals(Object.class)) {
+			fs = parent.getDeclaredFields();
+			for(Field f : fs) {
+				fields.add(f);
+			}
+
+			parent = parent.getSuperclass();
+		}
+
 		for(Field field : fields) {
 			Method setter = this.setterMethod(field, targetClass);
 			if(setter == null) {
@@ -108,7 +126,6 @@ public class JSONObjectMapper<Target> implements Mapper<JSONObject, Target> {
 						JSONArray jsonArray = source.getJSONArray(jsonField);
 						array = this.jsonArrayMapper.map(jsonArray, array);
 
-						//TODO: inject array to collection field
 						if(fieldValue != null) {
 							((Collection)fieldValue).clear();
 							int length = Array.getLength(array);
@@ -119,11 +136,11 @@ public class JSONObjectMapper<Target> implements Mapper<JSONObject, Target> {
 								}
 							}
 						} else {
-							if(Map.class.isAssignableFrom(fieldType)) {
-								//TODO: not support map
-							} else if(Set.class.isAssignableFrom(fieldType)) {
+							if(Set.class.isAssignableFrom(fieldType)) {
+								//Default set instance is hashset
 								fieldValue = new HashSet();
 							} else {
+								//Defaut for collection or list is arraylist
 								fieldValue = new ArrayList();
 							}
 

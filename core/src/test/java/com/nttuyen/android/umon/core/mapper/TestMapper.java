@@ -198,6 +198,8 @@ public class TestMapper {
 		}
 	}
 
+	//TODO: need test for abstract and extends
+
 	public static class SimpleClass {
 		private int id;
 		private String name;

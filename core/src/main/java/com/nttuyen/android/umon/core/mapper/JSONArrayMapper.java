@@ -41,7 +41,6 @@ public class JSONArrayMapper<Target> implements Mapper<JSONArray, Target> {
 			return target;
 		}
 
-		try {
 			int sourceSize = source.length();
 			Class type = targetClass.getComponentType();
 			int targetSize = Array.getLength(target);
@@ -57,11 +56,23 @@ public class JSONArrayMapper<Target> implements Mapper<JSONArray, Target> {
 				if(isPrimitive) {
 					Array.set(target, i, this.getPrimaryValue(source, i, type));
 				} else if(type.equals(String.class)) {
-					Array.set(target, i, source.getString(i));
+					try {
+						Array.set(target, i, source.getString(i));
+					} catch (JSONException e) {
+						Log.e(TAG, "JSONException", e);
+					}
 				} else if(type.equals(JSONObject.class)) {
-					Array.set(target, i, source.getJSONObject(i));
+					try {
+						Array.set(target, i, source.getJSONObject(i));
+					} catch (JSONException e) {
+						Log.e(TAG, "JSONException", e);
+					}
 				} else if(type.equals(JSONArray.class)) {
-					Array.set(target, i, source.getJSONArray(i));
+					try {
+						Array.set(target, i, source.getJSONArray(i));
+					} catch (JSONException e) {
+						Log.e(TAG, "JSONException", e);
+					}
 				} else {
 					Object obj = Array.get(target, i);
 					if(obj == null) {
@@ -69,8 +80,10 @@ public class JSONArrayMapper<Target> implements Mapper<JSONArray, Target> {
 							obj = type.newInstance();
 						} catch (InstantiationException e) {
 							Log.e(TAG, "InstantiationException", e);
+							obj = null;
 						} catch (IllegalAccessException e) {
 							Log.e(TAG, "IllegalAccessException", e);
+							obj = null;
 						}
 					}
 
@@ -85,9 +98,7 @@ public class JSONArrayMapper<Target> implements Mapper<JSONArray, Target> {
 					}
 				}
 			}
-		} catch (JSONException ex) {
-			Log.e(TAG, "JSONException", ex);
-		}
+
 		return target;
 	}
 
