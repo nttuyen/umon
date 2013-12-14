@@ -6,7 +6,6 @@ import org.json.JSONObject;
 import org.junit.Assert;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Collection;
 
 /**
@@ -18,7 +17,7 @@ public class TestMapper {
 		String jsonString = "{id: 10, name: \"name value\"}";
 		JSONObject json = new JSONObject(jsonString);
 		SimpleClass simple = new SimpleClass();
-		HelpMapper.map(json, simple);
+		ModelMappers.map(json, simple);
 
 		Assert.assertNotNull(simple);
 		Assert.assertEquals(10, simple.getId());
@@ -31,7 +30,7 @@ public class TestMapper {
 		JSONArray json = new JSONArray(jsonString);
 		int[] array = new int[0];
 
-		array = HelpMapper.map(json, array);
+		array = ModelMappers.map(json, array);
 
 		Assert.assertNotNull(array);
 		Assert.assertEquals(9, array.length);
@@ -44,7 +43,7 @@ public class TestMapper {
 		JSONArray json = new JSONArray(jsonString);
 		long[] array = new long[0];
 
-		array = HelpMapper.map(json, array);
+		array = ModelMappers.map(json, array);
 
 		Assert.assertNotNull(array);
 		Assert.assertArrayEquals(new long[] {1, 2, 3, 4, 5, 6, 7, 8, 9}, array);
@@ -56,7 +55,7 @@ public class TestMapper {
 		JSONArray json = new JSONArray(jsonString);
 		boolean[] array = new boolean[0];
 
-		array = HelpMapper.map(json, array);
+		array = ModelMappers.map(json, array);
 
 		Assert.assertNotNull(array);
 		Assert.assertEquals(4, array.length);
@@ -72,7 +71,7 @@ public class TestMapper {
 		JSONArray json = new JSONArray(jsonString);
 		double[] array = new double[0];
 
-		array = HelpMapper.map(json, array);
+		array = ModelMappers.map(json, array);
 
 		Assert.assertNotNull(array);
 		Assert.assertArrayEquals(new double[] {1.1, 2.2, 3.3, 4.4, 5.5, 6.6, 7.7, 8.7, 9.9}, array, 0);
@@ -84,7 +83,7 @@ public class TestMapper {
 		JSONArray json = new JSONArray(jsonString);
 		float[] array = new float[0];
 
-		array = HelpMapper.map(json, array);
+		array = ModelMappers.map(json, array);
 
 		Assert.assertNotNull(array);
 		Assert.assertArrayEquals(new float[] {1.1f, 2.2f, 3.3f, 4.4f, 5.5f, 6.6f, 7.7f, 8.7f, 9.9f}, array, 0);
@@ -95,7 +94,7 @@ public class TestMapper {
 		String jsonString = "[\"value 1\", \"value 2\", \"value 3\", \"value 4\", \"value 5\"]";
 		JSONArray json = new JSONArray(jsonString);
 		String[] array = new String[0];
-		array = HelpMapper.map(json, array);
+		array = ModelMappers.map(json, array);
 
 		Assert.assertNotNull(array);
 		Assert.assertArrayEquals(new String[]{"value 1", "value 2", "value 3", "value 4", "value 5"}, array);
@@ -107,7 +106,7 @@ public class TestMapper {
 		JSONArray json = new JSONArray(jsonString);
 
 		SimpleClass[] array = new SimpleClass[0];
-		array = HelpMapper.map(json, array);
+		array = ModelMappers.map(json, array);
 
 		Assert.assertNotNull(array);
 		Assert.assertEquals(4, array.length);
@@ -123,7 +122,7 @@ public class TestMapper {
 		JSONArray json = new JSONArray(jsonString);
 
 		JSONObject[] array = new JSONObject[0];
-		array = HelpMapper.map(json, array);
+		array = ModelMappers.map(json, array);
 
 		Assert.assertNotNull(array);
 		Assert.assertEquals(4, array.length);
@@ -140,7 +139,7 @@ public class TestMapper {
 
 		JSONArray[] array = new JSONArray[0];
 
-		array = HelpMapper.map(json, array);
+		array = ModelMappers.map(json, array);
 
 		Assert.assertNotNull(array);
 		Assert.assertEquals(2, array.length);
@@ -164,7 +163,7 @@ public class TestMapper {
 		JSONObject json = new JSONObject(jsonString);
 
 		ComplexClass complex = new ComplexClass();
-		HelpMapper.map(json, complex);
+		ModelMappers.map(json, complex);
 
 		Assert.assertNotNull(complex);
 		Assert.assertEquals(10, complex.getId());

@@ -10,14 +10,12 @@ import org.json.JSONObject;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.*;
 
 /**
  * @author nttuyen266@gmail.com
  */
-public class JSONObjectMapper<Target> implements Mapper<JSONObject, Target> {
+public class JSONObjectMapper<Target> implements ModelMapper<JSONObject, Target> {
 	private static final String TAG = "[umon][core]" + JSONObjectMapper.class.getName();
 
 	private JSONArrayMapper jsonArrayMapper;

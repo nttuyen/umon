@@ -40,7 +40,11 @@ public class MethodCallback implements Callback {
 			for(int i = 0; i < newParams.length; i++) {
 				if(newParams[i] != null) {
 					try {
-						newParams[i] = paramTypes[i].cast(newParams[i]);
+						if(paramTypes[i].isPrimitive()) {
+							//TODO: do nothing here
+						} else {
+							newParams[i] = paramTypes[i].cast(newParams[i]);
+						}
 					} catch (Exception e) {
 						newParams[i] = null;
 					}

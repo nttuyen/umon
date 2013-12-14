@@ -5,7 +5,7 @@ import org.json.JSONObject;
 /**
  * @author nttuyen266@gmail.com
  */
-public class ToJSONObjectMapper<Source> implements Mapper<Source, JSONObject>{
+public class ToJSONObjectMapper<Source> implements ModelMapper<Source, JSONObject> {
 	@Override
 	public JSONObject map(Source source, JSONObject target) {
 		if(source == null || target == null) {

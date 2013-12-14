@@ -5,7 +5,7 @@ import org.json.JSONArray;
 /**
  * @author nttuyen266@gmail.com
  */
-public class ToJSONArrayMapper<Source> implements Mapper<Source, JSONArray> {
+public class ToJSONArrayMapper<Source> implements ModelMapper<Source, JSONArray> {
 	@Override
 	public JSONArray map(Source source, JSONArray target) {
 		if(source == null || target == null) {

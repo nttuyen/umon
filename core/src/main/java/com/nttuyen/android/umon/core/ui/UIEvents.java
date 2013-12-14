@@ -30,8 +30,8 @@ public class UIEvents {
 		}
 		Class type = target.getClass();
 
-		//All method declared at current class is high priority
-		Method[] methods = type.getDeclaredMethods();
+		//All public method should be load but do not override
+		Method[] methods = type.getMethods();
 		for(Method method : methods) {
 			UIOnclick uiOnclick = method.getAnnotation(UIOnclick.class);
 			if(uiOnclick != null) {
@@ -46,8 +46,8 @@ public class UIEvents {
 			}
 		}
 
-		//All public method should be load but do not override
-		methods = type.getMethods();
+		//All method declared at current class is high priority
+		methods = type.getDeclaredMethods();
 		for(Method method : methods) {
 			UIOnclick uiOnclick = method.getAnnotation(UIOnclick.class);
 			if(uiOnclick != null) {

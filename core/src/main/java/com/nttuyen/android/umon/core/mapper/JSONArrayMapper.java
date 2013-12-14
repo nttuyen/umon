@@ -7,12 +7,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Array;
-import java.util.Arrays;
 
 /**
  * @author nttuyen266@gmail.com
  */
-public class JSONArrayMapper<Target> implements Mapper<JSONArray, Target> {
+public class JSONArrayMapper<Target> implements ModelMapper<JSONArray, Target> {
 	private static final String TAG = "[umon][core]" + JSONArrayMapper.class.getName();
 
 	private JSONObjectMapper jsonObjectMapper = null;
