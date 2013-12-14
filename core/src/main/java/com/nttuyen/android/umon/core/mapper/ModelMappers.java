@@ -9,9 +9,9 @@ import java.util.Map;
 /**
  * @author nttuyen266@gmail.com
  */
-public class HelpMapper {
+public class ModelMappers {
 
-	private static final Map<String, Mapper> mappers = new HashMap<String, Mapper>();
+	private static final Map<String, ModelMapper> mappers = new HashMap<String, ModelMapper>();
 
 	static {
 		JSONArrayMapper jsonArrayMapper = new JSONArrayMapper();
@@ -23,7 +23,7 @@ public class HelpMapper {
 		register(JSONArray.class, null, jsonArrayMapper);
 	}
 
-	public static <Source, Target> void register(Class<Source> sourceClass, Class<Target> targetClass, Mapper<Source, Target> mapper) {
+	public static <Source, Target> void register(Class<Source> sourceClass, Class<Target> targetClass, ModelMapper<Source, Target> mapper) {
 		if(mapper == null) {
 			return;
 		}
@@ -34,7 +34,7 @@ public class HelpMapper {
 		mappers.put(key, mapper);
 	}
 
-	static <Source, Target> Mapper<Source, Target> getMapper(Class<Source> sourceClass, Class<Target> targetClass) {
+	static <Source, Target> ModelMapper<Source, Target> getMapper(Class<Source> sourceClass, Class<Target> targetClass) {
 		String name1 = sourceClass != null ? sourceClass.toString() : "NULL";
 		String name2 = targetClass != null ? targetClass.toString() : "NULL";
 
@@ -61,7 +61,7 @@ public class HelpMapper {
 			return null;
 		}
 
-		Mapper<Source, Target> mapper = getMapper((Class<Source>)source.getClass(), (Class<Target>)target.getClass());
+		ModelMapper<Source, Target> mapper = getMapper((Class<Source>)source.getClass(), (Class<Target>)target.getClass());
 		if(mapper != null) {
 			return mapper.map(source, target);
 		}

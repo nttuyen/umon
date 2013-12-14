@@ -10,7 +10,7 @@ import java.util.Set;
 /**
  * @author nttuyen266@gmail.com
  */
-public class Events {
+public class ModelEvents {
 	public static void on(Model model, String event, Callback callback) {
 		if(model != null && callback != null) {
 			model.on(event, callback);
@@ -62,7 +62,7 @@ public class Events {
 			if(modelEventListener != null && modelEventListener.events() != null && modelEventListener.events().length > 0) {
 				String[] events = modelEventListener.events();
 				for(String event : events) {
-					Events.on(model, event, method, target);
+					ModelEvents.on(model, event, method, target);
 					registered.add(event);
 				}
 			}
@@ -76,7 +76,7 @@ public class Events {
 				String[] events = modelEventListener.events();
 				for(String event : events) {
 					if(!registered.contains(event)) {
-						Events.on(model, event, method, target);
+						ModelEvents.on(model, event, method, target);
 					}
 				}
 			}
