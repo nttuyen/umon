@@ -1,11 +1,14 @@
 package com.nttuyen.android.umon.core;
 
+import android.util.Log;
+
 import java.lang.reflect.Method;
 
 /**
  * @author nttuyen266@gmail.com
  */
 public class MethodCallback implements Callback {
+	private static final String TAG = "[umon][core] MethodCallback";
 	private final Method method;
 	private final Object context;
 
@@ -52,7 +55,7 @@ public class MethodCallback implements Callback {
 			}
 			m.invoke(this.context, newParams);
 		} catch (Exception ex) {
-			ex.printStackTrace();
+			Log.e(TAG, "Exception", ex);
 		}
 	}
 

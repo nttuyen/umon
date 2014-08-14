@@ -7,6 +7,7 @@ import android.util.AttributeSet;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.view.Window;
 import android.widget.*;
 import com.nttuyen.android.umon.core.Callback;
@@ -54,21 +55,92 @@ public class UmonView extends RelativeLayout {
 		this.inflater = (LayoutInflater)context.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 
 		//TODO: init useDialogForLoading, isViewInList, loadingLayoutId
-		//this.showLoading();
+
+		//Init loading view
+		setLoadingLayout(0);
+
+		//Init rootView if exists
+		this.setLayout(0);
 	}
 
-	public Model getModel() {
-		return this.model;
+	public void setLoadingLayout(final int layoutId) {
+		if((state.loadingView != null) && (layoutId == 0 || layoutId == state.loadingLayoutId)) {
+			return;
+		}
+		state.loadingLayoutId = layoutId;
+
+		final View oldLoadingView = state.loadingView;
+		state.loadingView = layoutId > 0 ? inflater.inflate(layoutId, null) : new ProgressBar(this.getContext());
+
+		if(state.useDialogForLoading) {
+			if(state.dialog == null) {
+				state.dialog = new Dialog(this.getContext());
+				state.dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+				state.dialog.requestWindowFeature(Window.FEATURE_LEFT_ICON);
+				state.dialog.setCancelable(false);
+			}
+			state.dialog.setContentView(state.loadingView);
+		} else {
+			((Activity)this.getContext()).runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					if(oldLoadingView != null) {
+						UmonView.this.removeView(oldLoadingView);
+					}
+
+					RelativeLayout.LayoutParams params;
+					if(state.loadingView instanceof ProgressBar) {
+						params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
+						params.addRule(RelativeLayout.CENTER_HORIZONTAL, RelativeLayout.TRUE);
+						params.addRule(RelativeLayout.CENTER_VERTICAL, RelativeLayout.TRUE);
+					} else {
+						params = new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT);
+					}
+					UmonView.this.addView(state.loadingView, params);
+					state.loadingView.setVisibility(oldLoadingView != null ? oldLoadingView.getVisibility() : View.VISIBLE);
+				}
+			});
+		}
 	}
+	public void setLayout(final int layoutId) {
+		if(layoutId == 0 || layoutId == state.layoutId) {
+			return;
+		}
+
+		state.layoutId = layoutId;
+
+		//Backup oldRootView
+		final View oldRootView = state.rootView;
+		state.rootView = inflater.inflate(layoutId, null);
+
+		//Add rootView to this
+		((Activity)this.getContext()).runOnUiThread(new Runnable() {
+			@Override
+			public void run() {
+				if(oldRootView != null) {
+					UmonView.this.removeView(oldRootView);
+				}
+				UmonView.this.addView(state.rootView, new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT));
+				state.rootView.setVisibility(oldRootView != null ? oldRootView.getVisibility() : View.GONE);
+			}
+		});
+
+		//Init Event handler
+		//TODO: should move this to background?
+		state.mapViews.clear();
+		state.initMapViews(UmonView.this.model);
+
+		Context context = UmonView.this.getContext();
+		if(context instanceof Activity) {
+			UIEvents.on(state.rootView, context);
+		}
+	}
+
 	public void setModel(final Model model) {
 		if(model == null || model == this.model) return;
 		this.model = model;
 
-		if(state.current == State.STATE_CONTENT_READY) {
-			state.current = State.STATE_VIEW_READY;
-		}
-
-		//Process model in background
+		//TODO: how to process this on background
 		try {
 			ModelEvents.off(model);
 			ModelEvents.on(model, UmonView.this);
@@ -80,7 +152,7 @@ public class UmonView extends RelativeLayout {
 					setLayout(state.isViewInList ? uiLayout.layoutInListView() : uiLayout.layout());
 				}
 				state.mapViews.clear();
-				state.initMapViews();
+				state.initMapViews(UmonView.this.model);
 			}
 		} catch (Throwable ex) {
 			Log.e(TAG, "Exception when set model", ex);
@@ -89,113 +161,61 @@ public class UmonView extends RelativeLayout {
 
 	@ModelEventListener(events = {Model.ON_PROCESS_START})
 	public void showLoading() {
-		if(state.current == State.STATE_LOADING) {
-			return;
-		}
-
-		if(state.loadingView == null) {
-			if(state.loadingLayoutId > 0) {
-				state.loadingView = this.inflater.inflate(state.loadingLayoutId, null);
-			} else {
-				state.loadingView = new ProgressBar(this.getContext());
-			}
-		}
-
 		if(state.useDialogForLoading) {
-			if(state.dialog == null) {
-				state.dialog = new Dialog(this.getContext());
-				state.dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
-				state.dialog.requestWindowFeature(Window.FEATURE_LEFT_ICON);
-				state.dialog.setContentView(state.loadingView);
-				state.dialog.setCancelable(false);
+			if(state.dialog != null && !state.dialog.isShowing()) {
+				state.dialog.show();
 			}
-			state.dialog.show();
 		} else {
-			this.removeAllViews();
-			RelativeLayout.LayoutParams params;
-			if(state.loadingView instanceof ProgressBar) {
-				params = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-				params.addRule(RelativeLayout.CENTER_VERTICAL, RelativeLayout.TRUE);
-				params.addRule(RelativeLayout.CENTER_HORIZONTAL, RelativeLayout.TRUE);
-			} else {
-				params = new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT);
-			}
-			this.addView(state.loadingView, params);
+			((Activity)this.getContext()).runOnUiThread(new Runnable() {
+				@Override
+				public void run() {
+					if(state.rootView != null && state.rootView.getVisibility() != View.GONE) {
+						state.rootView.setVisibility(View.GONE);
+					}
+					if(state.loadingView != null && state.loadingView.getVisibility() != View.VISIBLE) {
+						state.loadingView.setVisibility(View.VISIBLE);
+					}
+				}
+			});
 		}
-		state.current = State.STATE_LOADING;
 	}
 	protected void dismissLoading() {
-		if(state.current != State.STATE_LOADING) {
-			return;
-		}
-		final UmonView v = this;
 		((Activity)this.getContext()).runOnUiThread(new Runnable() {
 			@Override
 			public void run() {
 				if(state.useDialogForLoading) {
-					state.dialog.dismiss();
+					if(state.dialog != null && state.dialog.isShowing()) {
+						state.dialog.dismiss();
+					}
 				} else {
-					v.removeAllViews();
+					if(state.loadingView != null && state.loadingView.getVisibility() != View.GONE) {
+						state.loadingView.setVisibility(View.GONE);
+					}
 				}
 			}
 		});
-		state.current = State.STATE_INIT;
-	}
-
-	protected void showBodyView() {
-		if(state.current >= State.STATE_VIEW_READY || state.rootView == null) {
-			return;
-		}
-		dismissLoading();
-		final UmonView v = this;
-		final RelativeLayout.LayoutParams params = new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT);
-		((Activity)this.getContext()).runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-				v.addView(state.rootView, params);
-			}
-		});
-		state.current = State.STATE_VIEW_READY;
 	}
 
 	@ModelEventListener(events = {Model.ON_PROCESS_COMPLETED, Model.ON_PROCESS_ERROR})
 	public void renderContent() {
-		try {
-			if(state.current == State.STATE_CONTENT_READY) {
-				return;
-			}
-			//TODO: when call state.render()?
-			state.render();
-			if(state.current != State.STATE_VIEW_READY) {
-				UmonView.this.showBodyView();
-			}
-			state.current = State.STATE_CONTENT_READY;
-		} catch (Throwable ex) {
-			Log.e(TAG, "Exception", ex);
-		}
-	}
-
-	public void setLayout(int layoutId) {
-		if(layoutId == 0 || layoutId == state.layoutId) {
-			return;
-		}
-
-		state.layoutId = layoutId;
-		state.rootView = this.inflater.inflate(layoutId, null);
-		if(state.current >= State.STATE_VIEW_READY) {
-			this.removeAllViews();
-			this.addView(state.rootView);
-		}
-
-		state.mapViews.clear();
-		state.initMapViews();
-
-		//Init Event handler
-		Context context = UmonView.this.getContext();
-		if(context instanceof Activity) {
-			UIEvents.on(state.rootView, context);
-		}
-		UIEvents.on(state.rootView, this);
+		Async.execute(
+				null,
+				new Callback() {
+					@Override
+					public void execute(Object... params) {
+						state.render(UmonView.this.model);
+					}
+				},
+				new Callback() {
+					@Override
+					public void execute(Object... params) {
+						dismissLoading();
+						if(state.rootView != null && state.rootView.getVisibility() != View.VISIBLE) {
+							state.rootView.setVisibility(View.VISIBLE);
+						}
+					}
+				}
+		);
 	}
 
 	protected void setViewValue(View view, Object value) {
@@ -215,12 +235,6 @@ public class UmonView extends RelativeLayout {
 	}
 
 	protected static class State {
-		public static final byte STATE_INIT = 0;
-		public static final byte STATE_LOADING = 1;
-		public static final byte STATE_VIEW_READY = 2;
-		public static final byte STATE_CONTENT_READY = 3;
-		public byte current = STATE_INIT;
-
 		//Should get these from attributes
 		public int layoutId = 0;
 		public boolean isViewInList = false;
@@ -235,17 +249,19 @@ public class UmonView extends RelativeLayout {
 		public Map<Method, View> mapViews = new HashMap<Method, View>();
 
 		private final UmonView umonView;
+		private Model renderdModel = null;
 
 		public State(UmonView umonView) {
 			this.umonView = umonView;
 		}
 
-		public void initMapViews() {
-			if(umonView.model == null || rootView == null || !mapViews.isEmpty()) {
+		//TODO: need pass Model to param of this method
+		public void initMapViews(final Model model) {
+			if(model == null || rootView == null || !mapViews.isEmpty()) {
 				return;
 			}
 
-			modelClass = umonView.model.getClass();
+			modelClass = model.getClass();
 			Set<Field> fields = ReflectUtil.getAllField(modelClass);
 			for(Field field : fields) {
 				Method getter = ReflectUtil.getterMethod(field, modelClass);
@@ -264,13 +280,19 @@ public class UmonView extends RelativeLayout {
 				}
 			}
 		}
-		public void render() {
-			if(umonView.model != null) {
+		public void render(final Model model) {
+			if(renderdModel == model || model == null) {
+				return;
+			} else {
+				renderdModel = model;
+			}
+
+			if(renderdModel != null) {
 				if(modelClass == null) {
-					initMapViews();
+					initMapViews(model);
 				}
 
-				if(modelClass == umonView.model.getClass() && !mapViews.isEmpty()) {
+				if(modelClass == renderdModel.getClass() && !mapViews.isEmpty()) {
 					for(Method m : mapViews.keySet()) {
 						try {
 							Object val = m.invoke(umonView.model);

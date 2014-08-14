@@ -23,8 +23,6 @@ public class UmonScrollView extends ScrollView {
 	protected UmonCollectionView collectionView = null;
 
 	protected Collection<? extends Model> models = null;
-
-	protected ProgressBar progressBar = null;
 	private LinearLayout.LayoutParams params = null;
 
 	private int stepToAdd = 10;
@@ -47,12 +45,8 @@ public class UmonScrollView extends ScrollView {
 
 	private void init(Context context, AttributeSet attrs, int defStyle) {
 		this.collectionView = new UmonCollectionView(this.getContext());
-
-		LayoutParams params1 = new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT);
 		this.params = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-		this.addView(this.collectionView, params1);
-
-		this.progressBar = new ProgressBar(context);
+		this.addView(this.collectionView, new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT));
 	}
 
 	public void setModels(Collection<? extends Model> models) {
@@ -60,23 +54,10 @@ public class UmonScrollView extends ScrollView {
 		this.currentIndex = 0;
 
 		this.collectionViewModel = new Collection<Model>();
-		this.collectionView.removeAllViews();
 		this.collectionView.setModels(this.collectionViewModel);
 
-		((Activity)this.getContext()).runOnUiThread(new Runnable() {
-			@Override
-			public void run() {
-				collectionView.addView(progressBar, params);
-				progressBar.setVisibility(View.VISIBLE);
-			}
-		});
-		//this.collectionView.removeView(this.progressBar);
-
 		//this.addMoreView(this.models.size() - 1);
-		this.addMoreView(this.currentIndex + this.stepToAdd * 2);
-	}
-	public Collection<? extends Model> getModels() {
-		return this.models;
+		this.addMoreView(this.currentIndex + this.stepToAdd);
 	}
 
 	public void addMoreView(int toIndex) {
@@ -101,13 +82,12 @@ public class UmonScrollView extends ScrollView {
 
 		// if diff is zero, then the bottom has been reached
 		if (diff == 0) {
-			if(progressBar.getVisibility() != View.VISIBLE && this.currentIndex < models.size()) {
-				progressBar.setVisibility(View.VISIBLE);
-				final UmonScrollView _this = this;
+			if(collectionView.getProgressBar().getVisibility() != View.VISIBLE && this.currentIndex < models.size()) {
+				collectionView.getProgressBar().setVisibility(View.VISIBLE);
 				this.post(new Runnable() {
 					@Override
 					public void run() {
-						_this.fullScroll(View.FOCUS_DOWN);
+						UmonScrollView.this.fullScroll(View.FOCUS_DOWN);
 					}
 				});
 				this.addMoreView(this.currentIndex + this.stepToAdd);

@@ -133,6 +133,32 @@ public class Async {
 		};
 		task.execute();
 	}
+	public static void execute(final Callback before, final Callback main, final Callback after) {
+		AsyncTask task = new AsyncTask() {
+			@Override
+			protected Object doInBackground(Object... params) {
+				main.execute();
+				return null;
+			}
+
+			@Override
+			protected void onPreExecute() {
+				super.onPreExecute();
+				if(before != null) {
+					before.execute();
+				}
+			}
+
+			@Override
+			protected void onPostExecute(Object o) {
+				super.onPostExecute(o);
+				if(after != null) {
+					after.execute();
+				}
+			}
+		};
+		task.execute();
+	}
 	public static void execute(final String queue, final Callback callback) {
 		if(callback == null) return;
 		if(queue == null || queue.isEmpty()) {
