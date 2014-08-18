@@ -125,4 +125,9 @@ public class ReflectUtil {
 			method.setAccessible(true);
 		}
 	}
+
+    public static boolean isPrimary(Class c) {
+        //TODO: @nttuyen update this method please
+        return c.isPrimitive();
+    }
 }
