@@ -45,6 +45,7 @@ public class SlidingMenu extends DrawerLayout {
 
         this.addView(body, bodyLayoutParams);
         this.addView(menu, menuLayoutParams);
+        menu.setClickable(true);
 
         //TODO: I don't know this is good or bad
         menu.setBackgroundColor(getResources().getColor(android.R.color.white));
