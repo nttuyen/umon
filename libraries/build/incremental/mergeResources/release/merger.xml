@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merger>
+
+    <dataSet config="20.0.0" >
+        <source path="/home/tuyennt/nttuyen/projects/umon/libraries/build/exploded-aar/com.android.support/support-v4/20.0.0/res" />
+    </dataSet>
+    <dataSet config="main" >
+        <source path="/home/tuyennt/nttuyen/projects/umon/libraries/src/main/res" >
+            <file
+                name="ic_launcher"
+                path="/home/tuyennt/nttuyen/projects/umon/libraries/src/main/res/drawable-hdpi/ic_launcher.png"
+                qualifiers="hdpi"
+                type="drawable" />
+            <file
+                path="/home/tuyennt/nttuyen/projects/umon/libraries/src/main/res/values/strings.xml"
+                qualifiers="" >
+                <string name="app_name" >Umon Framework
+                </string>
+            </file>
+            <file
+                name="ic_launcher"
+                path="/home/tuyennt/nttuyen/projects/umon/libraries/src/main/res/drawable-xhdpi/ic_launcher.png"
+                qualifiers="xhdpi"
+                type="drawable" />
+            <file
+                name="ic_launcher"
+                path="/home/tuyennt/nttuyen/projects/umon/libraries/src/main/res/drawable-mdpi/ic_launcher.png"
+                qualifiers="mdpi"
+                type="drawable" />
+            <file
+                name="ic_launcher"
+                path="/home/tuyennt/nttuyen/projects/umon/libraries/src/main/res/drawable-xxhdpi/ic_launcher.png"
+                qualifiers="xxhdpi"
+                type="drawable" />
+        </source>
+        <source path="/home/tuyennt/nttuyen/projects/umon/libraries/build/res/rs/release" />
+        <source path="/home/tuyennt/nttuyen/projects/umon/libraries/build/res/generated/release" />
+    </dataSet>
+    <dataSet config="release" >
+        <source path="/home/tuyennt/nttuyen/projects/umon/libraries/src/release/res" />
+    </dataSet>
+
+</merger>
