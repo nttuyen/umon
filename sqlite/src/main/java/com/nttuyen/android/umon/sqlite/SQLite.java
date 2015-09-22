@@ -569,4 +569,35 @@ public class SQLite extends SQLiteOpenHelper {
     public static interface ContentValuesSetter {
         public void set(ContentValues values, String name, Field field, Object target) throws Exception;
     }
+
+    public static void addEntityClass(Class... clazz) {
+        for (Class c : clazz) {
+            if (c == null) {
+                continue;
+            }
+            if (c.getAnnotation(Table.class) == null) {
+                continue;
+            }
+            entityClasses.add(c);
+        }
+    }
+
+    public static <T> void registerGetter(Class<T> clazz, CursorGetter<T> getter) {
+        if (getter == null || clazz == null) {
+            return;
+        }
+        cursorGetterMap.put(clazz, getter);
+    }
+    public static <T> void registerSetter(Class<T> clazz, ContentValuesSetter setter) {
+        if (clazz == null || setter == null) {
+            return;
+        }
+        contentValuesSetterMap.put(clazz, setter);
+    }
+    public static <T> void registerType(Class<T> clazz, String type) {
+        if (clazz == null || type == null) {
+            return;
+        }
+        typeMaps.put(clazz, type);
+    }
 }
