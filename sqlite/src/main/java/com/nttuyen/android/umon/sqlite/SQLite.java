@@ -306,6 +306,8 @@ public class SQLite extends SQLiteOpenHelper {
             }
             sql.deleteCharAt(sql.length() - 1);
             sql.append(" )");
+
+            db.execSQL(sql.toString());
         }
     }
 
@@ -360,13 +362,32 @@ public class SQLite extends SQLiteOpenHelper {
             if(trans != null) {
                 continue;
             }
+            Id id = f.getAnnotation(Id.class);
             Column column = f.getAnnotation(Column.class);
             String columnName = column != null ? column.value() : f.getName();
-            try {
-                f.setAccessible(true);
-                ContentValuesSetter setter = contentValuesSetterMap.get(f.getType());
-                setter.set(values, columnName, f, entity);
-            } catch (Exception ex) {}
+
+            boolean ignore = false;
+            if (id != null || columnName.equalsIgnoreCase("id")) {
+                String type;
+                if(column != null && column.type() != null && !"".equals(column.type())) {
+                    type = column.type();
+                } else {
+                    type = typeMaps.get(f.getType());
+                }
+                if ("INTEGER".equalsIgnoreCase(type)) {
+                    ignore = true;
+                }
+            }
+
+            if (!ignore) {
+                try {
+                    f.setAccessible(true);
+                    ContentValuesSetter setter = contentValuesSetterMap.get(f.getType());
+                    setter.set(values, columnName, f, entity);
+                } catch (Exception ex) {
+                    Log.e(TAG, "Exception", ex);
+                }
+            }
         }
 
         long id = db.insert(tableName, null, values);
@@ -487,10 +508,12 @@ public class SQLite extends SQLiteOpenHelper {
             if(cursor == null) {
                 return null;
             }
-            while(cursor.moveToFirst()) {
-                T instance = clazz.newInstance();
-                this.inject(cursor, clazz, instance);
-                entities.add(instance);
+            if(cursor.moveToFirst()) {
+                do {
+                    T instance = clazz.newInstance();
+                    this.inject(cursor, clazz, instance);
+                    entities.add(instance);
+                } while (cursor.moveToNext());
             }
         } catch (Exception ex) {
             Log.e(TAG, "Exception while select entity object by ID", ex);
