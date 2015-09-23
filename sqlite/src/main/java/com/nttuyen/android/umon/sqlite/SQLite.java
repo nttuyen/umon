@@ -3,6 +3,7 @@ package com.nttuyen.android.umon.sqlite;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
@@ -11,14 +12,18 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Created by nttuyen on 1/17/15.
  */
 public class SQLite extends SQLiteOpenHelper {
     private static final String TAG = "SQLite";
-    private static final Set<Class> entityClasses = new HashSet<Class>();
+
+    private static final Map<Class, EntityInfo> mappings = new ConcurrentHashMap<Class, EntityInfo>();
+
     private static final Map<Class, String> typeMaps = new HashMap<Class, String>();
     private static final Map<Class, CursorGetter> cursorGetterMap = new HashMap<Class, CursorGetter>();
     private static final Map<Class, ContentValuesSetter> contentValuesSetterMap = new HashMap<Class, ContentValuesSetter>();
@@ -270,32 +275,15 @@ public class SQLite extends SQLiteOpenHelper {
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        for(Class clazz : entityClasses) {
-            Table table = (Table)clazz.getAnnotation(Table.class);
-            if(table == null) {
-                continue;
-            }
-            String tableName = table.value();
-            StringBuilder sql = new StringBuilder("CREATE TABLE ").append(tableName).append(" (");
-            Field[] fields = ReflectUtil.getAllFields(clazz);
-            for(Field f : fields) {
-                Transient trans = f.getAnnotation(Transient.class);
-                if(trans != null) {
-                    continue;
-                }
-                Column column = f.getAnnotation(Column.class);
-                Id id = f.getAnnotation(Id.class);
-                String name = column != null ? column.value() : f.getName();
-                String type;
-                if(column != null && column.type() != null && !"".equals(column.type())) {
-                    type = column.type();
-                } else {
-                    type = typeMaps.get(f.getType());
-                }
-
+        for(Class clazz : mappings.keySet()) {
+            EntityInfo mapping = mappings.get(clazz);
+            StringBuilder sql = new StringBuilder("CREATE TABLE ").append(mapping.table).append(" (");
+            for(EntityInfo.Column column : mapping.columns.values()) {
+                String name = column.name;
+                String type = column.sqlType;
                 if(name != null && !"".equals(name) && type != null && !"".equals(type)) {
                     sql.append(name).append(" ").append(type).append(" ");
-                    if(id != null || "id".equalsIgnoreCase(name)) {
+                    if(column.isId) {
                         sql.append(" PRIMARY KEY ");
                         if("INTEGER".equalsIgnoreCase(type)) {
                             sql.append("autoincrement ");
@@ -313,7 +301,7 @@ public class SQLite extends SQLiteOpenHelper {
 
     @Override
     public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-        for(Class clazz : entityClasses) {
+        for(Class clazz : mappings.keySet()) {
             Table table = (Table) clazz.getAnnotation(Table.class);
             if (table == null) {
                 continue;
@@ -347,58 +335,48 @@ public class SQLite extends SQLiteOpenHelper {
             return -1;
         }
         Class clazz = entity.getClass();
-        if(!entityClasses.contains(clazz)) {
+        if(!mappings.containsKey(clazz)) {
             return -1;
         }
-        Table table = (Table)clazz.getAnnotation(Table.class);
-        String tableName = table.value();
+        EntityInfo mapping = mappings.get(clazz);
 
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
-        Field[] fields = ReflectUtil.getAllFields(clazz);
-        Field idField = null;
-        for(Field f : fields) {
-            Transient trans = f.getAnnotation(Transient.class);
-            if(trans != null) {
-                continue;
-            }
-            Id id = f.getAnnotation(Id.class);
-            Column column = f.getAnnotation(Column.class);
-            String columnName = column != null ? column.value() : f.getName();
 
-            boolean ignore = false;
-            if (id != null || columnName.equalsIgnoreCase("id")) {
-                String type;
-                if(column != null && column.type() != null && !"".equals(column.type())) {
-                    type = column.type();
-                } else {
-                    type = typeMaps.get(f.getType());
-                }
-                if ("INTEGER".equalsIgnoreCase(type)) {
-                    ignore = true;
-                }
+        EntityInfo.Column cid = null;
+        for(EntityInfo.Column column : mapping.columns.values()) {
+            if (column.isId) {
+                cid = column;
             }
-
-            if (!ignore) {
+            if (column.isId && "INTEGER".equalsIgnoreCase(column.sqlType)) {
+                //. Ignore
+            } else {
                 try {
-                    f.setAccessible(true);
-                    ContentValuesSetter setter = contentValuesSetterMap.get(f.getType());
-                    setter.set(values, columnName, f, entity);
+                    ContentValuesSetter setter = contentValuesSetterMap.get(column.javaType);
+                    column.field.setAccessible(true);
+                    setter.set(values, column.name, column.field, entity);
                 } catch (Exception ex) {
                     Log.e(TAG, "Exception", ex);
                 }
             }
         }
 
-        long id = db.insert(tableName, null, values);
+        long id = db.insert(mapping.table, null, values);
         db.close();
-        if(idField != null) {
-            idField.setAccessible(true);
+        if(cid != null && ("INTEGER".equalsIgnoreCase(cid.sqlType))) {
             try {
-                idField.set(entity, id);
+                if (cid.setterMethod != null) {
+                    cid.setterMethod.invoke(entity, id);
+                } else {
+                    cid.field.setAccessible(true);
+                    cid.field.setLong(entity, id);
+                }
             } catch (Exception ex) {
                 Log.e(TAG, "Exception while update ID to entity after insert", ex);
             }
+        }
+        if (id > 0 && mapping.getCount() > 0) {
+            mapping.increaseCount();
         }
 
         return id;
@@ -409,44 +387,36 @@ public class SQLite extends SQLiteOpenHelper {
             return 0;
         }
         Class clazz = entity.getClass();
-        if(!entityClasses.contains(clazz)) {
+        if(!mappings.containsKey(clazz)) {
             return 0;
         }
+        EntityInfo mapping = mappings.get(clazz);
 
-        SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
-
-        Table table = (Table)clazz.getAnnotation(Table.class);
-        String tableName = table.value();
-
-        Field[] fields = ReflectUtil.getAllFields(clazz);
-        String idColumn = "id";
-        String idValue = "0";
-        for(Field f : fields) {
-            Transient trans = f.getAnnotation(Transient.class);
-            if(trans != null) {
-                continue;
-            }
-            f.setAccessible(true);
-            Column column = f.getAnnotation(Column.class);
-            Id id = f.getAnnotation(Id.class);
-            String columnName = column != null ? column.value() : f.getName();
-            if(id != null && column != null) {
-                idColumn = column.value();
+        EntityInfo.Column cid = null;
+        String idVal = "";
+        for(EntityInfo.Column column : mapping.columns.values()) {
+            if (column.isId) {
+                cid = column;
                 try {
-                    idValue = String.valueOf(f.get(entity));
-                } catch (Exception ex) {}
+                    idVal = String.valueOf(column.getterMethod.invoke(entity));
+                } catch (Exception ex) {
+                    Log.e(TAG, "Invoke getter method exception", ex);
+                }
             }
             try {
-                ContentValuesSetter setter = contentValuesSetterMap.get(f.getType());
-                setter.set(values, columnName, f, entity);
+                ContentValuesSetter setter = contentValuesSetterMap.get(column.javaType);
+                setter.set(values, column.name, column.field, entity);
             } catch (Exception ex) {}
         }
 
-        int count = db.update(tableName, values, idColumn + " = ?", new String[]{idValue});
-        db.close();
-
-        return count;
+        if (cid != null) {
+            SQLiteDatabase db = this.getWritableDatabase();
+            int count = db.update(mapping.table, values, cid.name + " = ?", new String[]{idVal});
+            db.close();
+            return count;
+        }
+        return 0;
     }
 
     public SQLite save(Object entity) {
@@ -454,21 +424,23 @@ public class SQLite extends SQLiteOpenHelper {
             return this;
         }
         Class clazz = entity.getClass();
-        if(!entityClasses.contains(clazz)) {
+        if(!mappings.containsKey(clazz)) {
             return this;
         }
+        EntityInfo mapping = mappings.get(clazz);
 
         boolean isInsert = true;
-        Field[] fields = ReflectUtil.getFieldsByAnnotation(clazz, Id.class);
-        if(fields.length == 1) {
-            Field f = fields[0];
-            f.setAccessible(true);
+        for(EntityInfo.Column column : mapping.columns.values()) {
+            if (!column.isId) continue;
+
             try {
-                long val = f.getLong(entity);
+                long val = (Long)column.getterMethod.invoke(entity);
                 if(val > 0) {
                     isInsert = false;
                 }
-            } catch (Exception ex) {}
+            } catch (Exception ex) {
+                Log.e(TAG, "Exception while invoke getter", ex);
+            }
         }
 
         if(isInsert) {
@@ -480,29 +452,37 @@ public class SQLite extends SQLiteOpenHelper {
         return this;
     }
 
+    public <T> Long count(Class<T> clazz) {
+        if (clazz == null || !mappings.containsKey(clazz)) {
+            return 0L;
+        }
+        EntityInfo entityInfo = mappings.get(clazz);
+        long count = entityInfo.getCount();
+        if (count > 0) {
+            return count;
+        }
+        SQLiteDatabase db = this.getReadableDatabase();
+        count = DatabaseUtils.queryNumEntries(db, mappings.get(clazz).table);
+        entityInfo.setCount(count);
+        db.close();
+        return count;
+    }
+
     public <T> List<T> select(Class<T> clazz) {
-        if(clazz == null || !entityClasses.contains(clazz)) {
+        if(clazz == null || !mappings.containsKey(clazz)) {
             return Collections.emptyList();
         }
+        EntityInfo info = mappings.get(clazz);
         List<T> entities = new LinkedList<T>();
 
+        List<String> columns = new ArrayList<String>(info.columns.size());
         try {
             SQLiteDatabase db = this.getReadableDatabase();
-            Table table = clazz.getAnnotation(Table.class);
-            String tableName = table.value();
-            Field[] fields = ReflectUtil.getAllFields(clazz);
-            List<String> columns = new ArrayList<String>();
-            for(Field f : fields) {
-                Transient trans = f.getAnnotation(Transient.class);
-                if(trans != null) {
-                    continue;
-                }
-                Column column = f.getAnnotation(Column.class);
-                String name = column != null ? column.value() : f.getName();
-                columns.add(name);
+            for(EntityInfo.Column column : info.columns.values()) {
+                columns.add(column.name);
             }
 
-            Cursor cursor = db.query(tableName, columns.toArray(new String[columns.size()]),
+            Cursor cursor = db.query(info.table, columns.toArray(new String[columns.size()]),
                     null, null,
                     null, null, null, null);
             if(cursor == null) {
@@ -511,7 +491,7 @@ public class SQLite extends SQLiteOpenHelper {
             if(cursor.moveToFirst()) {
                 do {
                     T instance = clazz.newInstance();
-                    this.inject(cursor, clazz, instance);
+                    this.inject(cursor, instance);
                     entities.add(instance);
                 } while (cursor.moveToNext());
             }
@@ -523,31 +503,22 @@ public class SQLite extends SQLiteOpenHelper {
         return entities;
     }
     public <T> T selectById(Class<T> clazz, Object id) {
-        if(clazz == null || !entityClasses.contains(clazz) || id == null) {
+        if(clazz == null || !mappings.containsKey(clazz) || id == null) {
             return null;
         }
+        EntityInfo info = mappings.get(clazz);
         try {
-            SQLiteDatabase db = this.getReadableDatabase();
-            Table table = clazz.getAnnotation(Table.class);
-            String tableName = table.value();
-            Field[] fields = ReflectUtil.getAllFields(clazz);
             List<String> columns = new ArrayList<String>();
+            SQLiteDatabase db = this.getReadableDatabase();
             String idColumn = "id";
-            for(Field f : fields) {
-                Transient trans = f.getAnnotation(Transient.class);
-                if(trans != null) {
-                    continue;
-                }
-                Column column = f.getAnnotation(Column.class);
-                Id ida = f.getAnnotation(Id.class);
-                String name = column != null ? column.value() : f.getName();
-                columns.add(name);
-                if(ida != null) {
-                    idColumn = name;
+            for(EntityInfo.Column column : info.columns.values()) {
+                columns.add(column.name);
+                if(column.isId) {
+                    idColumn = column.name;
                 }
             }
 
-            Cursor cursor = db.query(tableName, columns.toArray(new String[columns.size()]),
+            Cursor cursor = db.query(info.table, columns.toArray(new String[columns.size()]),
                     idColumn + " = ?", new String[]{String.valueOf(id)},
                     null, null, null, null);
             if(cursor == null) {
@@ -556,7 +527,7 @@ public class SQLite extends SQLiteOpenHelper {
             T instance = null;
             if(cursor.moveToFirst()) {
                 instance = clazz.newInstance();
-                this.inject(cursor, clazz, instance);
+                this.inject(cursor, instance);
             }
 
             return instance;
@@ -566,20 +537,19 @@ public class SQLite extends SQLiteOpenHelper {
         }
     }
 
-    private <T> void inject(Cursor cursor, Class<T> clazz, T instance) {
-        Field[] fields = ReflectUtil.getAllFields(clazz);
-        for(Field f : fields) {
-            Transient trans = f.getAnnotation(Transient.class);
-            if(trans != null) {
-                continue;
-            }
-            Column column = f.getAnnotation(Column.class);
-            String name = column != null ? column.value() : f.getName();
-            int columnIndex = cursor.getColumnIndex(name);
-            f.setAccessible(true);
-            CursorGetter getter = cursorGetterMap.get(f.getType());
+    private <T> void inject(Cursor cursor, T instance) {
+        EntityInfo info = mappings.get(instance.getClass());
+        for(EntityInfo.Column column : info.columns.values()) {
+            int columnIndex = cursor.getColumnIndex(column.name);
+            CursorGetter getter = cursorGetterMap.get(column.javaType);
             try {
-                f.set(instance, getter.getValue(cursor, columnIndex));
+                Object val = getter.getValue(cursor, columnIndex);
+                if (column.setterMethod != null) {
+                    column.setterMethod.invoke(instance, val);
+                } else {
+                    column.field.setAccessible(true);
+                    column.field.set(instance, val);
+                }
             } catch (Exception ex) {
                 Log.e(TAG, "Exception while inject data to entity", ex);
             }
@@ -590,6 +560,7 @@ public class SQLite extends SQLiteOpenHelper {
         public T getValue(Cursor cursor, int index);
     }
     public static interface ContentValuesSetter {
+        //TODO: this method is need to improve
         public void set(ContentValues values, String name, Field field, Object target) throws Exception;
     }
 
@@ -601,8 +572,44 @@ public class SQLite extends SQLiteOpenHelper {
             if (c.getAnnotation(Table.class) == null) {
                 continue;
             }
-            entityClasses.add(c);
+            processEntityClass(c);
         }
+    }
+
+    private static void processEntityClass(Class clazz) {
+        Table table = (Table)clazz.getAnnotation(Table.class);
+        String tableName = table.value();
+        if (tableName == null || tableName.isEmpty()) {
+            tableName = clazz.getSimpleName();
+        }
+        EntityInfo mapping = new EntityInfo(tableName);
+
+        Field[] fields = ReflectUtil.getAllFields(clazz);
+        for(Field f : fields) {
+            Transient trans = f.getAnnotation(Transient.class);
+            if(trans != null) {
+                continue;
+            }
+            Id id = f.getAnnotation(Id.class);
+            Column column = f.getAnnotation(Column.class);
+            String columnName = column != null ? column.value() : f.getName();
+
+            boolean isId = false;
+            if (id != null || columnName.equalsIgnoreCase("id")) {
+                isId = true;
+            }
+            String sqlType;
+            if(column != null && column.type() != null && !"".equals(column.type())) {
+                sqlType = column.type();
+            } else {
+                sqlType = typeMaps.get(f.getType());
+            }
+
+            Method getter = ReflectUtil.getterMethod(f, clazz);
+            Method setter = ReflectUtil.setterMethod(f, clazz);
+            mapping.addColumn(f.getName(), new EntityInfo.Column(columnName, sqlType, f.getType(), isId, f, getter, setter));
+        }
+        mappings.put(clazz, mapping);
     }
 
     public static <T> void registerGetter(Class<T> clazz, CursorGetter<T> getter) {
