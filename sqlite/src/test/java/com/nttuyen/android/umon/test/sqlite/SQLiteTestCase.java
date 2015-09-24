@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import com.nttuyen.android.umon.sqlite.SQLite;
+import com.nttuyen.android.umon.sqlite.condition.Conditions;
+import com.nttuyen.android.umon.sqlite.condition.Query;
 import org.junit.*;
 import org.junit.runner.RunWith;
 import org.robolectric.Robolectric;
@@ -142,5 +144,21 @@ public class SQLiteTestCase {
 
         persistence.delete(MyEntity.class, entity.getId());
         Assert.assertEquals(new Long(1L), (Long)persistence.count(MyEntity.class));
+    }
+
+    @Test
+    public void testSelectByQuery() {
+        MyEntity entity = new MyEntity();
+        Date created = new Date();
+        entity.setName("Test update");
+        entity.setDescription("This is to test the update");
+        entity.setCreated(created);
+
+        persistence.insert(entity);
+
+        Query query = Conditions.eq("name", "Test update").toQuery();
+        List<MyEntity> entities = persistence.select(MyEntity.class, query);
+
+        Assert.assertTrue(entities.size() >= 1);
     }
 }

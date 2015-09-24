@@ -7,7 +7,9 @@ import android.database.DatabaseUtils;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
+import com.nttuyen.android.umon.sqlite.condition.Query;
 import com.nttuyen.android.umon.utils.reflect.ReflectUtil;
+import com.sun.org.apache.xerces.internal.impl.xpath.regex.Match;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -16,6 +18,8 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by nttuyen on 1/17/15.
@@ -351,6 +355,51 @@ public class SQLite extends SQLiteOpenHelper {
         entityInfo.setCount(count);
         db.close();
         return count;
+    }
+
+    //TODO: we will need a paging and query method
+    private static final Pattern PATTERN = Pattern.compile("\\{([a-zA-Z_0-9]+)\\}");
+    public <T> List<T> select(Class<T> clazz, Query query) {
+        if(clazz == null || !mappings.containsKey(clazz)) {
+            return Collections.emptyList();
+        }
+        EntityInfo info = mappings.get(clazz);
+        List<T> entities = new LinkedList<T>();
+
+        try {
+            StringBuffer sb = new StringBuffer();
+
+            Matcher matcher = PATTERN.matcher(query.selection);
+            while(matcher.find()) {
+                String field = matcher.group(1);
+                EntityInfo.Column c = info.columns.get(field);
+                if (c == null) {
+                    throw new IllegalArgumentException("Field with name '" + field + "' does not exist");
+                }
+                matcher.appendReplacement(sb, c.name);
+            }
+            matcher.appendTail(sb);
+
+            SQLiteDatabase db = this.getReadableDatabase();
+            Cursor cursor = db.query(info.table, null,
+                    sb.toString(), query.getArgs(),
+                    null, null, null, null);
+            if(cursor == null) {
+                return null;
+            }
+            if(cursor.moveToFirst()) {
+                do {
+                    T instance = clazz.newInstance();
+                    this.inject(cursor, instance);
+                    entities.add(instance);
+                } while (cursor.moveToNext());
+            }
+        } catch (Exception ex) {
+            Log.e(TAG, "Exception while select entity object by ID", ex);
+            return null;
+        }
+
+        return entities;
     }
 
     public <T> List<T> select(Class<T> clazz) {
