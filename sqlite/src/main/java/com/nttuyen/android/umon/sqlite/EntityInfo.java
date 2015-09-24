@@ -1,6 +1,9 @@
 package com.nttuyen.android.umon.sqlite;
 
+import android.util.Log;
+
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Map;
@@ -31,6 +34,9 @@ class EntityInfo {
     public void increaseCount() {
         count.addAndGet(1);
     }
+    public void decreaseCount() {
+        count.addAndGet(-1);
+    }
 
     static class Column {
         public final String name;
@@ -49,6 +55,42 @@ class EntityInfo {
             this.field = f;
             this.getterMethod = getter;
             this.setterMethod = setter;
+        }
+
+        public <T> T getValue(Object entity) {
+            if (entity == null) {
+                throw new IllegalArgumentException("Entity must not null");
+            }
+            try {
+                if (getterMethod != null) {
+                    return (T) getterMethod.invoke(entity);
+                } else {
+                    field.setAccessible(true);
+                    return (T)field.get(entity);
+                }
+            } catch (IllegalAccessException ex) {
+                Log.e(SQLite.TAG, "Exception while fetch field value", ex);
+            } catch (InvocationTargetException ex) {
+                Log.e(SQLite.TAG, "Exception while fetch field value", ex);
+            }
+            return null;
+        }
+        public <T> void setValue(Object entity, T value) {
+            if (entity == null) {
+                throw new IllegalArgumentException("Entity must not null");
+            }
+            try {
+                if (setterMethod != null) {
+                    setterMethod.invoke(entity, value);
+                } else {
+                    field.setAccessible(true);
+                    field.set(entity, value);
+                }
+            } catch (IllegalAccessException ex) {
+                Log.e(SQLite.TAG, "Exception while fetch field value", ex);
+            } catch (InvocationTargetException ex) {
+                Log.e(SQLite.TAG, "Exception while fetch field value", ex);
+            }
         }
     }
 }

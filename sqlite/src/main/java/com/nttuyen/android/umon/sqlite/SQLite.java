@@ -9,6 +9,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 import com.nttuyen.android.umon.utils.reflect.ReflectUtil;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.lang.reflect.Field;
@@ -20,253 +21,150 @@ import java.util.concurrent.ConcurrentHashMap;
  * Created by nttuyen on 1/17/15.
  */
 public class SQLite extends SQLiteOpenHelper {
-    private static final String TAG = "SQLite";
+    static final String TAG = "SQLite";
 
     private static final Map<Class, EntityInfo> mappings = new ConcurrentHashMap<Class, EntityInfo>();
 
     private static final Map<Class, String> typeMaps = new HashMap<Class, String>();
-    private static final Map<Class, CursorGetter> cursorGetterMap = new HashMap<Class, CursorGetter>();
-    private static final Map<Class, ContentValuesSetter> contentValuesSetterMap = new HashMap<Class, ContentValuesSetter>();
+
+    private static final Map<Class, DataProcessor<?>> contentProcessor = new ConcurrentHashMap<Class, DataProcessor<?>>();
 
     static {
-        typeMaps.put(Integer.TYPE, "INTEGER");
-        typeMaps.put(Integer.class, "INTEGER");
-        typeMaps.put(Long.TYPE, "INTEGER");
-        typeMaps.put(Long.class, "INTEGER");
-        typeMaps.put(Boolean.TYPE, "INTEGER");
-        typeMaps.put(Boolean.class, "INTEGER");
-        typeMaps.put(Byte.TYPE, "INTEGER");
-        typeMaps.put(Byte.class, "INTEGER");
-        typeMaps.put(Date.class, "INTEGER");
+        registerTypeMapping("INTEGER", Byte.TYPE, Byte.class, Integer.TYPE, Integer.class, Long.TYPE, Long.class, Boolean.TYPE, Boolean.class, Date.class);
+        registerTypeMapping("REAL", Float.TYPE, Float.class, Double.TYPE, Double.class);
+        registerTypeMapping("TEXT", String.class, JSONObject.class, JSONArray.class);
 
-        typeMaps.put(Float.TYPE, "REAL");
-        typeMaps.put(Float.class, "REAL");
-        typeMaps.put(Double.TYPE, "REAL");
-        typeMaps.put(Double.class, "REAL");
+        //
+        registerProcessor(new DataProcessor<Byte>() {
+            @Override
+            public void set(ContentValues values, String fieldName, Byte value) {
+                values.put(fieldName, value);
+            }
 
-        typeMaps.put(String.class, "TEXT");
-        typeMaps.put(JSONObject.class, "TEXT");
-        typeMaps.put(JSONArray.class, "TEXT");
-
-        cursorGetterMap.put(Integer.TYPE, new CursorGetter() {
             @Override
-            public Object getValue(Cursor cursor, int index) {
-                return cursor.getInt(index);
-            }
-        });
-        cursorGetterMap.put(Integer.class, new CursorGetter() {
-            @Override
-            public Object getValue(Cursor cursor, int index) {
-                return cursor.getInt(index);
-            }
-        });
-        cursorGetterMap.put(Long.TYPE, new CursorGetter() {
-            @Override
-            public Object getValue(Cursor cursor, int index) {
-                return cursor.getInt(index);
-            }
-        });
-        cursorGetterMap.put(Long.class, new CursorGetter() {
-            @Override
-            public Object getValue(Cursor cursor, int index) {
-                return cursor.getInt(index);
-            }
-        });
-        cursorGetterMap.put(Boolean.TYPE, new CursorGetter() {
-            @Override
-            public Object getValue(Cursor cursor, int index) {
-                int val = cursor.getInt(index);
-                if(val == 1) {
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-        });
-        cursorGetterMap.put(Boolean.class, new CursorGetter() {
-            @Override
-            public Object getValue(Cursor cursor, int index) {
-                int val = cursor.getInt(index);
-                if (val == 1) {
-                    return true;
-                } else {
-                    return false;
-                }
-            }
-        });
-        cursorGetterMap.put(Byte.TYPE, new CursorGetter() {
-            @Override
-            public Object getValue(Cursor cursor, int index) {
+            public Byte get(Cursor cursor, int index) {
                 return (byte)cursor.getInt(index);
             }
-        });
-        cursorGetterMap.put(Byte.class, new CursorGetter() {
-            @Override
-            public Object getValue(Cursor cursor, int index) {
-                return (byte)cursor.getInt(index);
-            }
-        });
-        cursorGetterMap.put(Date.class, new CursorGetter() {
-            @Override
-            public Object getValue(Cursor cursor, int index) {
-                return new Date(cursor.getInt(index));
-            }
-        });
+        }, Byte.TYPE, Byte.class);
 
-        cursorGetterMap.put(Float.TYPE, new CursorGetter() {
+        //
+        registerProcessor(new DataProcessor<Integer>() {
             @Override
-            public Object getValue(Cursor cursor, int index) {
+            public void set(ContentValues values, String fieldName, Integer value) {
+                values.put(fieldName, value);
+            }
+
+            @Override
+            public Integer get(Cursor cursor, int index) {
+                return cursor.getInt(index);
+            }
+        }, Integer.TYPE, Integer.class);
+
+        //
+        registerProcessor(new DataProcessor<Long>() {
+            @Override
+            public void set(ContentValues values, String fieldName, Long value) {
+                values.put(fieldName, value);
+            }
+
+            @Override
+            public Long get(Cursor cursor, int index) {
+                return cursor.getLong(index);
+            }
+        }, Long.TYPE, Long.class);
+
+        //
+        registerProcessor(new DataProcessor<Boolean>() {
+            @Override
+            public void set(ContentValues values, String fieldName, Boolean value) {
+                values.put(fieldName, value ? 1 : 0);
+            }
+
+            @Override
+            public Boolean get(Cursor cursor, int index) {
+                return cursor.getInt(index) >= 1 ? Boolean.TRUE : Boolean.FALSE;
+            }
+        }, Boolean.TYPE, Boolean.class);
+
+        registerProcessor(new DataProcessor<Float>() {
+            @Override
+            public void set(ContentValues values, String fieldName, Float value) {
+                values.put(fieldName, value);
+            }
+
+            @Override
+            public Float get(Cursor cursor, int index) {
                 return cursor.getFloat(index);
             }
-        });
-        cursorGetterMap.put(Float.class, new CursorGetter() {
-            @Override
-            public Object getValue(Cursor cursor, int index) {
-                return cursor.getFloat(index);
-            }
-        });
-        cursorGetterMap.put(Double.TYPE, new CursorGetter() {
-            @Override
-            public Object getValue(Cursor cursor, int index) {
-                return cursor.getDouble(index);
-            }
-        });
-        cursorGetterMap.put(Double.class, new CursorGetter() {
-            @Override
-            public Object getValue(Cursor cursor, int index) {
-                return cursor.getDouble(index);
-            }
-        });
+        }, Float.TYPE, Float.class);
 
-        cursorGetterMap.put(String.class, new CursorGetter() {
+        registerProcessor(new DataProcessor<Double>() {
             @Override
-            public Object getValue(Cursor cursor, int index) {
+            public void set(ContentValues values, String fieldName, Double value) {
+                values.put(fieldName, value);
+            }
+
+            @Override
+            public Double get(Cursor cursor, int index) {
+                return cursor.getDouble(index);
+            }
+        }, Double.TYPE, Double.class);
+
+        registerProcessor(new DataProcessor<String>() {
+            @Override
+            public void set(ContentValues values, String fieldName, String value) {
+                values.put(fieldName, value);
+            }
+
+            @Override
+            public String get(Cursor cursor, int index) {
                 return cursor.getString(index);
             }
-        });
-        cursorGetterMap.put(JSONObject.class, new CursorGetter() {
+        }, String.class);
+
+        registerProcessor(new DataProcessor<Date>() {
             @Override
-            public Object getValue(Cursor cursor, int index) {
+            public void set(ContentValues values, String fieldName, Date value) {
+                values.put(fieldName, value.getTime());
+            }
+
+            @Override
+            public Date get(Cursor cursor, int index) {
+                return new Date(cursor.getLong(index));
+            }
+        }, Date.class);
+
+        registerProcessor(new DataProcessor<JSONObject>() {
+            @Override
+            public void set(ContentValues values, String fieldName, JSONObject value) {
+                values.put(fieldName, value.toString());
+            }
+
+            @Override
+            public JSONObject get(Cursor cursor, int index) {
                 try {
                     return new JSONObject(cursor.getString(index));
-                } catch (Exception ex) {
-                    return null;
+                } catch (JSONException ex) {
+                    return new JSONObject();
                 }
             }
-        });
-        cursorGetterMap.put(JSONArray.class, new CursorGetter() {
+        }, JSONObject.class);
+
+        registerProcessor(new DataProcessor<JSONArray>() {
             @Override
-            public Object getValue(Cursor cursor, int index) {
+            public void set(ContentValues values, String fieldName, JSONArray value) {
+                values.put(fieldName, value.toString());
+            }
+
+            @Override
+            public JSONArray get(Cursor cursor, int index) {
                 try {
                     return new JSONArray(cursor.getString(index));
-                } catch (Exception ex) {
-                    return null;
+                } catch (JSONException ex) {
+                    return new JSONArray();
                 }
             }
-        });
-
-        //. Content value setter map
-        contentValuesSetterMap.put(Integer.TYPE, new ContentValuesSetter() {
-            @Override
-            public void set(ContentValues values, String name, Field field, Object target) throws Exception {
-                values.put(name, field.getInt(target));
-            }
-        });
-        contentValuesSetterMap.put(Integer.class, new ContentValuesSetter() {
-            @Override
-            public void set(ContentValues values, String name, Field field, Object target) throws Exception {
-                values.put(name, field.getInt(target));
-            }
-        });
-        contentValuesSetterMap.put(Long.TYPE, new ContentValuesSetter() {
-            @Override
-            public void set(ContentValues values, String name, Field field, Object target) throws Exception {
-                values.put(name, field.getLong(target));
-            }
-        });
-        contentValuesSetterMap.put(Long.class, new ContentValuesSetter() {
-            @Override
-            public void set(ContentValues values, String name, Field field, Object target) throws Exception {
-                values.put(name, field.getLong(target));
-            }
-        });
-        contentValuesSetterMap.put(Boolean.TYPE, new ContentValuesSetter() {
-            @Override
-            public void set(ContentValues values, String name, Field field, Object target) throws Exception {
-                values.put(name, field.getBoolean(target) ? 1 : 0);
-            }
-        });
-        contentValuesSetterMap.put(Boolean.class, new ContentValuesSetter() {
-            @Override
-            public void set(ContentValues values, String name, Field field, Object target) throws Exception {
-                values.put(name, field.getBoolean(target) ? 1 : 0);
-            }
-        });
-        contentValuesSetterMap.put(Byte.TYPE, new ContentValuesSetter() {
-            @Override
-            public void set(ContentValues values, String name, Field field, Object target) throws Exception {
-                values.put(name, field.getByte(target));
-            }
-        });
-        contentValuesSetterMap.put(Byte.class, new ContentValuesSetter() {
-            @Override
-            public void set(ContentValues values, String name, Field field, Object target) throws Exception {
-                values.put(name, field.getByte(target));
-            }
-        });
-        contentValuesSetterMap.put(Date.class, new ContentValuesSetter() {
-            @Override
-            public void set(ContentValues values, String name, Field field, Object target) throws Exception {
-                Date date = (Date)field.get(target);
-                values.put(name, date.getTime());
-            }
-        });
-
-        contentValuesSetterMap.put(Float.TYPE, new ContentValuesSetter() {
-            @Override
-            public void set(ContentValues values, String name, Field field, Object target) throws Exception {
-                values.put(name, field.getFloat(target));
-            }
-        });
-        contentValuesSetterMap.put(Float.class, new ContentValuesSetter() {
-            @Override
-            public void set(ContentValues values, String name, Field field, Object target) throws Exception {
-                values.put(name, field.getFloat(target));
-            }
-        });
-        contentValuesSetterMap.put(Double.TYPE, new ContentValuesSetter() {
-            @Override
-            public void set(ContentValues values, String name, Field field, Object target) throws Exception {
-                values.put(name, field.getDouble(target));
-            }
-        });
-        contentValuesSetterMap.put(Double.class, new ContentValuesSetter() {
-            @Override
-            public void set(ContentValues values, String name, Field field, Object target) throws Exception {
-                values.put(name, field.getDouble(target));
-            }
-        });
-
-        contentValuesSetterMap.put(String.class, new ContentValuesSetter() {
-            @Override
-            public void set(ContentValues values, String name, Field field, Object target) throws Exception {
-                values.put(name, (String)field.get(target));
-            }
-        });
-        contentValuesSetterMap.put(JSONObject.class, new ContentValuesSetter() {
-            @Override
-            public void set(ContentValues values, String name, Field field, Object target) throws Exception {
-                JSONObject val = (JSONObject)field.get(target);
-                values.put(name, val.toString());
-            }
-        });
-        contentValuesSetterMap.put(JSONArray.class, new ContentValuesSetter() {
-            @Override
-            public void set(ContentValues values, String name, Field field, Object target) throws Exception {
-                JSONArray val = (JSONArray)field.get(target);
-                values.put(name, val.toString());
-            }
-        });
+        }, JSONObject.class);
     }
 
     public SQLite(Context context, String name, SQLiteDatabase.CursorFactory factory, int version) {
@@ -351,30 +249,17 @@ public class SQLite extends SQLiteOpenHelper {
             if (column.isId && "INTEGER".equalsIgnoreCase(column.sqlType)) {
                 //. Ignore
             } else {
-                try {
-                    ContentValuesSetter setter = contentValuesSetterMap.get(column.javaType);
-                    column.field.setAccessible(true);
-                    setter.set(values, column.name, column.field, entity);
-                } catch (Exception ex) {
-                    Log.e(TAG, "Exception", ex);
-                }
+                DataProcessor processor = contentProcessor.get(column.javaType);
+                processor.set(values, column.name, column.getValue(entity));
             }
         }
 
         long id = db.insert(mapping.table, null, values);
         db.close();
         if(cid != null && ("INTEGER".equalsIgnoreCase(cid.sqlType))) {
-            try {
-                if (cid.setterMethod != null) {
-                    cid.setterMethod.invoke(entity, id);
-                } else {
-                    cid.field.setAccessible(true);
-                    cid.field.setLong(entity, id);
-                }
-            } catch (Exception ex) {
-                Log.e(TAG, "Exception while update ID to entity after insert", ex);
-            }
+            cid.setValue(entity, id);
         }
+
         if (id > 0 && mapping.getCount() > 0) {
             mapping.increaseCount();
         }
@@ -403,11 +288,10 @@ public class SQLite extends SQLiteOpenHelper {
                 } catch (Exception ex) {
                     Log.e(TAG, "Invoke getter method exception", ex);
                 }
+            } else {
+                DataProcessor processor = contentProcessor.get(column.javaType);
+                processor.set(values, column.name, column.getValue(entity));
             }
-            try {
-                ContentValuesSetter setter = contentValuesSetterMap.get(column.javaType);
-                setter.set(values, column.name, column.field, entity);
-            } catch (Exception ex) {}
         }
 
         if (cid != null) {
@@ -419,6 +303,7 @@ public class SQLite extends SQLiteOpenHelper {
         return 0;
     }
 
+    //TODO: is this method needed?
     public SQLite save(Object entity) {
         if(entity == null) {
             return this;
@@ -537,31 +422,47 @@ public class SQLite extends SQLiteOpenHelper {
         }
     }
 
+    public <T> void delete(Class<T> clazz, Object id) {
+        if (!mappings.containsKey(clazz)) return;
+        EntityInfo mapping = mappings.get(clazz);
+
+        EntityInfo.Column cid = null;
+        for (EntityInfo.Column c : mapping.columns.values()) {
+            if (c.isId) {
+                cid = c;
+                break;
+            }
+        }
+
+        if (cid == null) {
+            return;
+        }
+
+        SQLiteDatabase db = getWritableDatabase();
+        db.delete(mapping.table, cid.name + " = ? ", new String[] {String.valueOf(id)});
+        db.close();
+        if (mapping.getCount() > 0) {
+            mapping.decreaseCount();
+        }
+    }
+
     private <T> void inject(Cursor cursor, T instance) {
         EntityInfo info = mappings.get(instance.getClass());
         for(EntityInfo.Column column : info.columns.values()) {
             int columnIndex = cursor.getColumnIndex(column.name);
-            CursorGetter getter = cursorGetterMap.get(column.javaType);
-            try {
-                Object val = getter.getValue(cursor, columnIndex);
-                if (column.setterMethod != null) {
-                    column.setterMethod.invoke(instance, val);
-                } else {
-                    column.field.setAccessible(true);
-                    column.field.set(instance, val);
-                }
-            } catch (Exception ex) {
-                Log.e(TAG, "Exception while inject data to entity", ex);
-            }
+            DataProcessor processor = contentProcessor.get(column.javaType);
+            column.setValue(instance, processor.get(cursor, columnIndex));
         }
     }
 
-    public static interface CursorGetter<T> {
-        public T getValue(Cursor cursor, int index);
+    public static interface DataProcessor<T> {
+        public void set(ContentValues values, String fieldName, T value);
+        public T get(Cursor cursor, int index);
     }
-    public static interface ContentValuesSetter {
-        //TODO: this method is need to improve
-        public void set(ContentValues values, String name, Field field, Object target) throws Exception;
+    public static <T> void registerProcessor(DataProcessor<T> processor, Class... clazz) {
+        for (Class c : clazz) {
+            contentProcessor.put(c, processor);
+        }
     }
 
     public static void addEntityClass(Class... clazz) {
@@ -579,7 +480,7 @@ public class SQLite extends SQLiteOpenHelper {
     private static void processEntityClass(Class clazz) {
         Table table = (Table)clazz.getAnnotation(Table.class);
         String tableName = table.value();
-        if (tableName == null || tableName.isEmpty()) {
+        if (tableName.isEmpty()) {
             tableName = clazz.getSimpleName();
         }
         EntityInfo mapping = new EntityInfo(tableName);
@@ -612,22 +513,10 @@ public class SQLite extends SQLiteOpenHelper {
         mappings.put(clazz, mapping);
     }
 
-    public static <T> void registerGetter(Class<T> clazz, CursorGetter<T> getter) {
-        if (getter == null || clazz == null) {
-            return;
+    public static <T> void registerTypeMapping(String sqlType, Class... javaType) {
+        for(Class c : javaType) {
+            typeMaps.put(c, sqlType);
         }
-        cursorGetterMap.put(clazz, getter);
     }
-    public static <T> void registerSetter(Class<T> clazz, ContentValuesSetter setter) {
-        if (clazz == null || setter == null) {
-            return;
-        }
-        contentValuesSetterMap.put(clazz, setter);
-    }
-    public static <T> void registerType(Class<T> clazz, String type) {
-        if (clazz == null || type == null) {
-            return;
-        }
-        typeMaps.put(clazz, type);
-    }
+
 }

@@ -11,7 +11,7 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 @Target({ElementType.TYPE})
 public @interface Table {
-    public String value() default "table";
+    public String value() default "";
 
     /**
      * This field will format like JSON
